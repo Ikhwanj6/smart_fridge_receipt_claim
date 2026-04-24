@@ -32,7 +32,7 @@ class ReceiptPdfService {
     // Open in new tab
     html.window.open(objectUrl, '_blank');
 
-    // Optional cleanup
+    // Optional cleanu
     Future<void>.delayed(const Duration(seconds: 10), () {
       html.Url.revokeObjectUrl(objectUrl);
     });
