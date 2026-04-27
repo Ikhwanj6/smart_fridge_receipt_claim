@@ -1,4 +1,5 @@
 /*
+example response from claim endpoint
 {
     "status": true,
     "message": "Receipt found.",

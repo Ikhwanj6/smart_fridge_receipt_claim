@@ -1,4 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:receipt_claim_flutter_web/models/claim_result.dart';
+import 'package:receipt_claim_flutter_web/page/widget/build_form_card.dart';
+import 'package:receipt_claim_flutter_web/page/widget/build_hero_card.dart';
+import 'package:receipt_claim_flutter_web/page/widget/build_result_details_grid.dart';
+import 'package:receipt_claim_flutter_web/services/receipt_api_service.dart';
+import 'package:receipt_claim_flutter_web/services/receipt_pdf_service.dart';
+import 'package:receipt_claim_flutter_web/theme/color_pallete.dart';
+import 'package:receipt_claim_flutter_web/util/app_config.dart';
 import 'package:receipt_claim_flutter_web/util/ui_util.dart';
 
 class ReceiptClaimPage extends StatefulWidget {
@@ -122,9 +130,16 @@ class _ReceiptClaimPageState extends State<ReceiptClaimPage> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeroCard(),
+                        buildHeroCard(),
                         const SizedBox(height: 16),
-                        _buildFormCard(),
+                        buildFormCard(
+                          _formKey,
+                          _transactionNoController,
+                          _sending,
+                          _submitClaim,
+                          _errorMessage,
+                          _validateTransactionNo,
+                        ),
                         const SizedBox(height: 16),
                         _buildResultCard(),
                       ],
@@ -132,14 +147,21 @@ class _ReceiptClaimPageState extends State<ReceiptClaimPage> {
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(flex: 5, child: _buildHeroCard()),
+                        Expanded(flex: 5, child: buildHeroCard()),
                         const SizedBox(width: 16),
                         Expanded(
                           flex: 7,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _buildFormCard(),
+                              buildFormCard(
+                                _formKey,
+                                _transactionNoController,
+                                _sending,
+                                _submitClaim,
+                                _errorMessage,
+                                _validateTransactionNo,
+                              ),
                               const SizedBox(height: 16),
                               _buildResultCard(),
                             ],
@@ -151,164 +173,6 @@ class _ReceiptClaimPageState extends State<ReceiptClaimPage> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHeroCard() {
-    return Card(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              _darken(ColorPallete.redColor, 0.04),
-              ColorPallete.redColor,
-              _lighten(ColorPallete.redColor, 0.14),
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: ColorPallete.redColor.withOpacity(0.18),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.receipt_long, color: Colors.white, size: 42),
-            SizedBox(height: 16),
-            Text(
-              'Claim your payment receipt',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Enter your transaction No from the ewallet provider to retrieve the PDF receipt after a screenless QR payment.',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                height: 1.5,
-              ),
-            ),
-            SizedBox(height: 24),
-            _InfoChip(
-              icon: Icons.payments_outlined,
-              text: 'QR payment friendly',
-            ),
-            SizedBox(height: 10),
-            _InfoChip(
-              icon: Icons.lock_outline,
-              text: 'Token-based receipt links',
-            ),
-            SizedBox(height: 10),
-            _InfoChip(
-              icon: Icons.mobile_friendly_outlined,
-              text: 'Works on mobile browser',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Receipt details',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Enter your payment transaction No to retrieve the receipt.',
-                style: TextStyle(color: _textMuted),
-              ),
-              const SizedBox(height: 18),
-              TextFormField(
-                controller: _transactionNoController,
-                decoration: const InputDecoration(
-                  labelText: 'Transaction No',
-                  hintText: 'Example: 41234141412',
-                  prefixIcon: Icon(Icons.tag_outlined),
-                ),
-                validator: _validateTransactionNo,
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _sending ? null : _submitClaim,
-                  icon: _sending
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.search_outlined),
-                  label:
-                      Text(_sending ? 'Checking receipt...' : 'Claim receipt'),
-                ),
-              ),
-              if ((_errorMessage ?? '').isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _StatusBanner(
-                  color: _dangerBackground,
-                  borderColor: _dangerBorder,
-                  iconColor: ColorPallete.redColor,
-                  textColor: _textStrong,
-                  icon: Icons.error_outline,
-                  text: _errorMessage!,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultDetailsGrid({required List<Widget> tiles}) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        final columns = width >= 760
-            ? 3
-            : width >= 480
-                ? 2
-                : 1;
-        const spacing = 12.0;
-        final itemWidth = columns == 1
-            ? width
-            : (width - ((columns - 1) * spacing)) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final tile in tiles) SizedBox(width: itemWidth, child: tile),
-          ],
-        );
-      },
     );
   }
 
@@ -329,47 +193,47 @@ class _ReceiptClaimPageState extends State<ReceiptClaimPage> {
             if (_result == null)
               Text(
                 'No receipt claimed yet. Submit the form to retrieve the PDF link.',
-                style: TextStyle(color: _textMuted),
+                style: TextStyle(color: textMuted),
               )
             else ...[
-              _StatusBanner(
-                color: _result!.status ? _successBackground : _infoBackground,
-                borderColor: _result!.status ? _successBorder : _infoBorder,
+              StatusBanner(
+                color: _result!.status ? successBackground : infoBackground,
+                borderColor: _result!.status ? successBorder : infoBorder,
                 iconColor: ColorPallete.redColor,
-                textColor: _textStrong,
+                textColor: textStrong,
                 icon: _result!.status
                     ? Icons.check_circle_outline
                     : Icons.info_outline,
                 text: _result!.message,
               ),
               const SizedBox(height: 16),
-              _buildResultDetailsGrid(
+              buildResultDetailsGrid(
                 tiles: [
-                  _DataTile(
+                  DataTile(
                     label: 'Transaction No',
                     value: (_result!.transactionNo ?? '').isEmpty
                         ? '-'
                         : _result!.transactionNo!,
                   ),
-                  _DataTile(
+                  DataTile(
                     label: 'Transaction ID',
                     value: (_result!.transactionId ?? '').isEmpty
                         ? '-'
                         : _result!.transactionId!,
                   ),
-                  _DataTile(
+                  DataTile(
                     label: 'Machine Identifier',
                     value: (_result!.machineIdentifier ?? '').isEmpty
                         ? '-'
                         : _result!.machineIdentifier!,
                   ),
-                  _DataTile(
+                  DataTile(
                     label: 'Payment Time',
                     value: (_result!.paymentDateTime ?? '').isEmpty
                         ? '-'
                         : _result!.paymentDateTime!,
                   ),
-                  _DataTile(
+                  DataTile(
                     label: 'Receipt Token',
                     value: (_result!.receiptToken ?? '').isEmpty
                         ? '-'
@@ -383,9 +247,9 @@ class _ReceiptClaimPageState extends State<ReceiptClaimPage> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _surfaceTint(0.05),
+                    color: surfaceTint(0.05),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _surfaceTint(0.12)),
+                    border: Border.all(color: surfaceTint(0.12)),
                   ),
                   child: SelectableText(
                     receiptUrl!,
